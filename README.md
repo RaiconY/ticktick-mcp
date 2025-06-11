@@ -102,6 +102,11 @@ TICKTICK_USER_TIMEZONE=Asia/Bangkok         # Bangkok
 
 **Supported Format**: Use IANA timezone names (e.g., `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`).
 
+Date and time values provided without an explicit timezone will automatically
+use your configured timezone. For example, with
+`TICKTICK_USER_TIMEZONE=Asia/Bangkok` (UTC+7),
+`2025-06-11T15:00:00` will be interpreted as `2025-06-11T15:00:00+0700`.
+
 ## Authentication with Dida365
 
 [滴答清单 - Dida365](https://dida365.com/home) is China version of TickTick, and the authentication process is similar to TickTick. Follow these steps to set up Dida365 authentication:
