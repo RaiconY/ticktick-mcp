@@ -245,6 +245,8 @@ async def get_projects() -> str:
         for i, project in enumerate(projects, 1):
             result += f"Project {i}:\n" + format_project(project) + "\n"
         
+        if failed_projects > 0:
+            result += f"\n⚠️ Note: {failed_projects} projects were skipped due to errors\n"
         return result
     except Exception as e:
         logger.error(f"Error in get_projects: {e}")
@@ -944,26 +946,53 @@ async def get_upcoming_tasks(days: int = 7, project_id: str = None) -> str:
         # Get current time and future cutoff in user timezone
         now = datetime.now(USER_TIMEZONE)
         future_cutoff = now + timedelta(days=days)
-        
+        failed_projects = 0
+
         # Get tasks
         if project_id:
             project_data = ticktick.get_project_with_data(project_id)
             if 'error' in project_data:
                 return f"Error fetching project: {project_data['error']}"
+            projects = [project_data.get('project', {'id': project_id})]
             all_tasks = project_data.get('tasks', [])
-            scope = f"project '{project_data.get('project', {}).get('name', project_id)}'"
+            scope = f"project '{projects[0].get('name', project_id)}'"
         else:
             # Get from all projects
             projects = ticktick.get_projects()
             if 'error' in projects:
                 return f"Error fetching projects: {projects['error']}"
-            
+
+            # Filter active projects and limit to 25
+            active_projects = [p for p in projects if not p.get('closed', False)]
+            if len(active_projects) > 25:
+                logger.info(
+                    f"Limiting search to first 25 active projects out of {len(active_projects)} total"
+                )
+                active_projects = active_projects[:25]
+            projects = active_projects
+            scope = f"{len(projects)} active projects (limited for performance)"
+
+            logger.info(f"Processing {len(projects)} projects for upcoming tasks")
+            if len(projects) > 10:
+                logger.info("Processing more than 10 projects. This may take a while")
+
+            # Fetch tasks from projects
             all_tasks = []
-            for project in projects:
-                project_data = ticktick.get_project_with_data(project['id'])
-                if 'error' not in project_data:
-                    all_tasks.extend(project_data.get('tasks', []))
-            scope = "all projects"
+            for proj in projects:
+                try:
+                    proj_data = ticktick.get_project_with_data(proj['id'])
+                    if 'error' not in proj_data:
+                        all_tasks.extend(proj_data.get('tasks', []))
+                    else:
+                        failed_projects += 1
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to fetch project {proj.get('name', proj['id'])}: {e}"
+                    )
+                    failed_projects += 1
+                    continue
+            if failed_projects > 0:
+                logger.info(f"Skipped {failed_projects} projects due to errors")
         
         # Find upcoming tasks
         upcoming_tasks = []
@@ -1033,6 +1062,8 @@ async def get_upcoming_tasks(days: int = 7, project_id: str = None) -> str:
             if content:
                 content_preview = content[:50] + "..." if len(content) > 50 else content
                 result += f"    📝 {content_preview}\n"
+        if failed_projects > 0:
+            result += f"\n⚠️ Note: {failed_projects} projects were skipped due to errors\n"
         
         return result
         
