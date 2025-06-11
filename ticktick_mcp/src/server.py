@@ -24,8 +24,6 @@ mcp = FastMCP("ticktick")
 # Create TickTick client
 ticktick = None
 
-import os
-from zoneinfo import ZoneInfo
 
 # User timezone configuration  
 UTC_TIMEZONE = ZoneInfo("UTC")
