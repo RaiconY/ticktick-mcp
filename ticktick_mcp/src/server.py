@@ -242,9 +242,7 @@ async def get_projects() -> str:
         result = f"Found {len(projects)} projects:\n\n"
         for i, project in enumerate(projects, 1):
             result += f"Project {i}:\n" + format_project(project) + "\n"
-        
-        if failed_projects > 0:
-            result += f"\n⚠️ Note: {failed_projects} projects were skipped due to errors\n"
+
         return result
     except Exception as e:
         logger.error(f"Error in get_projects: {e}")
